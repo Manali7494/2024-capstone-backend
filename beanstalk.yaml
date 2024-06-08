@@ -11,4 +11,8 @@ Resources:
       ApplicationName: 
         Ref: "HealthyWealthyApplication"
       EnvironmentName: "Production"
-      SolutionStackName: "64bit Amazon Linux 2018.03 v4.14.1 running Node.js"
+      SolutionStackName: "64bit Amazon Linux 2 v5.6.7 running Node.js 14"
+  MyS3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: "my-specific-bucket-name"

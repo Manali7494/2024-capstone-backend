@@ -3,7 +3,7 @@ name: Node.js CI/CD
 on:
   push:
     branches: 
-    - PSU-20-add-backend-code
+    - main
 
 jobs:
   build:
