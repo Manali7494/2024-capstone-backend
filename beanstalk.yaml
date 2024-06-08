@@ -1,0 +1,14 @@
+Resources:
+  HealthyWealthyApplication:
+    Type: "AWS::ElasticBeanstalk::Application"
+    Properties:
+      ApplicationName: "HealthyWealthyBackEnd"
+      Description: "Healthy Wealthy Backend"
+
+  AppEnvironment:
+    Type: "AWS::ElasticBeanstalk::Environment"
+    Properties:
+      ApplicationName: 
+        Ref: "HealthyWealthyApplication"
+      EnvironmentName: "Production"
+      SolutionStackName: "64bit Amazon Linux 2018.03 v4.14.1 running Node.js"
