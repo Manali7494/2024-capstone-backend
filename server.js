@@ -10,9 +10,16 @@ AWS.config.update({
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   region: process.env.AWS_REGION,
 });
+// Middleware
+app.use((req, res, next) => {
+  req.aws = AWS;
+  next();
+});
 
+// Routers
 app.use('/', indexRouter);
 
+// Error handling
 app.use('*', (req, res) => {
   res.status(404).send('404 Not Found');
 });
