@@ -1,0 +1,18 @@
+Resources:
+  HealthyWealthyApplication:
+    Type: "AWS::ElasticBeanstalk::Application"
+    Properties:
+      ApplicationName: "HealthyWealthyBackEnd"
+      Description: "Healthy Wealthy Backend"
+
+  AppEnvironment:
+    Type: "AWS::ElasticBeanstalk::Environment"
+    Properties:
+      ApplicationName: 
+        Ref: "HealthyWealthyApplication"
+      EnvironmentName: "Production"
+      SolutionStackName: "64bit Amazon Linux 2 v5.6.7 running Node.js 14"
+  MyS3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: "healthy-wealthy-backend-deploy-2024"
