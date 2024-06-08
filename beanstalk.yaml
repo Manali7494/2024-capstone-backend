@@ -15,4 +15,4 @@ Resources:
   MyS3Bucket:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: "my-specific-bucket-name"
+      BucketName: "healthy-wealthy-backend-deploy-2024"
