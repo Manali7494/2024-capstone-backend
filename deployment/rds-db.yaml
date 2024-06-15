@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS CloudFormation template to create DB
+
+Parameters:
+  DBName:
+    Description: Database name
+    Type: String
+  MasterUsername:
+    Description: Database username
+    Type: String
+  MasterUserPassword:
+    Description: Database password
+    Type: String
+    NoEcho: true
+  DBClusterIdentifier:
+    Description: The identifier for the DB cluster
+    Type: String
+
+Resources:
+  DBCluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      Engine: aurora
+      EngineMode: serverless
+      DatabaseName: !Ref DBName
+      MasterUsername: !Ref MasterUsername
+      MasterUserPassword: !Ref MasterUserPassword
+      DBClusterIdentifier: !Ref DBClusterIdentifier
+      ScalingConfiguration:
+        AutoPause: true
+        MaxCapacity: 2
+        MinCapacity: 1
+        SecondsUntilAutoPause: 300
+
+Outputs:
+  DBClusterEndpoint:
+    Description: Endpoint address for Aurora DB cluster
+    Value: !GetAtt DBCluster.Endpoint.Address
+    Export:
+      Name: DBClusterEndpoint
+
+  DBClusterReadEndpoint:
+    Description:  read endpoint address of the Aurora serverless Db
+    Value: !GetAtt DBCluster.ReadEndpoint.Address
+    Export:
+      Name: DBClusterReadEndpoint

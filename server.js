@@ -1,5 +1,8 @@
 const express = require('express');
 const AWS = require('aws-sdk');
+require('dotenv').config();
+
+const { Client } = require('pg');
 
 const app = express();
 const port = process.env.PORT || 8080;
@@ -15,6 +18,22 @@ app.use((req, res, next) => {
   req.aws = AWS;
   next();
 });
+
+const client = new Client({
+  host: process.env.RDS_HOSTNAME,
+  user: process.env.RDS_USERNAME,
+  password: process.env.RDS_PASSWORD,
+  port: process.env.RDS_PORT,
+  database: process.env.RDS_DB_NAME,
+});
+
+client.connect()
+  .then(() => {
+    console.log('Connected to database');
+  })
+  .catch((err) => {
+    console.log('Failed to connect to database', err);
+  });
 
 // Routers
 app.use('/', indexRouter);
