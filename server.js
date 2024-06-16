@@ -5,18 +5,16 @@ require('dotenv').config();
 const { Client } = require('pg');
 
 const app = express();
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
 const port = process.env.PORT || 8080;
-const indexRouter = require('./routes/index');
+const postRouter = require('./routes/post');
 
 AWS.config.update({
   accessKeyId: process.env.AWS_ACCESS_KEY,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   region: process.env.AWS_REGION,
-});
-// Middleware
-app.use((req, res, next) => {
-  req.aws = AWS;
-  next();
 });
 
 const client = new Client({
@@ -30,6 +28,12 @@ const client = new Client({
   },
 });
 
+app.use((req, res, next) => {
+  req.aws = AWS;
+  req.dbClient = client;
+  next();
+});
+
 client.connect()
   .then(() => {
     console.log('Connected to database');
@@ -39,7 +43,7 @@ client.connect()
   });
 
 // Routers
-app.use('/', indexRouter);
+app.use('/posts', postRouter);
 
 // Error handling
 app.use('*', (req, res) => {
