@@ -1,10 +1,18 @@
 const express = require('express');
 const AWS = require('aws-sdk');
+const cors = require('cors');
 require('dotenv').config();
 
 const { Client } = require('pg');
 
 const app = express();
+
+const corsOptions = {
+  origin: ['https://main.d255ptb2b3ezjb.amplifyapp.com', 'https://d1r245uy9zk64m.cloudfront.net', 'http://localhost:3000'],
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+  allowedHeaders: ['Origin', 'Access-Control-Request-Headers', 'Access-Control-Request-Method', 'Content-Type'],
+};
+app.use(cors(corsOptions));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
