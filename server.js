@@ -10,6 +10,7 @@ app.use(express.json());
 
 const port = process.env.PORT || 8080;
 const postRouter = require('./routes/post');
+const userRouter = require('./routes/user');
 
 AWS.config.update({
   accessKeyId: process.env.AWS_ACCESS_KEY,
@@ -44,6 +45,12 @@ client.connect()
 
 // Routers
 app.use('/posts', postRouter);
+
+app.use('/users', userRouter);
+
+app.get('/', (req, res) => {
+  res.send('Hello World');
+});
 
 // Error handling
 app.use('*', (req, res) => {

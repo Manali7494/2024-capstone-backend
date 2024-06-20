@@ -2,7 +2,7 @@ Resources:
   HealthyWealthyApplication:
     Type: "AWS::ElasticBeanstalk::Application"
     Properties:
-      ApplicationName: "HealthyWealthyBackEnd"
+      ApplicationName: "psu-healthy-wealthy"
       Description: "Healthy Wealthy Backend"
 
   AppEnvironment:
@@ -15,4 +15,4 @@ Resources:
   MyS3Bucket:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: "healthy-wealthy-backend-deploy-2024"
+      BucketName: "healthy-wealthy-backend-deploy"

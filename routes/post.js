@@ -12,7 +12,7 @@ router.post('/', upload.single('healthy-wealthy-image'), (req, res) => {
   } = req.body;
   const { file } = req;
   const params = {
-    Bucket: 'healthy-wealthy-backend-deploy-2024',
+    Bucket: 'healthy-wealthy-backend-deploy',
     Key: `${Date.now()}-${name}`,
     Body: fs.createReadStream(file.path),
   };

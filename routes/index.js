@@ -12,7 +12,7 @@ router.get('/', (req, res) => {
 router.post('/upload', upload.single('healthy-wealthy-image'), (req, res) => {
   const { file } = req;
   const params = {
-    Bucket: 'healthy-wealthy-backend-deploy-2024',
+    Bucket: 'healthy-wealthy-backend-deploy',
     Key: `${Date.now()}-${file.originalname}`,
     Body: file.path,
   };

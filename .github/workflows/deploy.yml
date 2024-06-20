@@ -23,15 +23,15 @@ jobs:
           aws-region: "us-west-1"
 
       - name: Upload package to S3 bucket
-        run: aws s3 cp deploy_package.zip s3://healthy-wealthy-backend-deploy-2024/
+        run: aws s3 cp deploy_package.zip s3://healthy-wealthy-backend-deploy/
 
       - name: Create new ElasticBeanstalk Application Version
         run: |
           aws elasticbeanstalk create-application-version \
-          --application-name HealthyWealthyBackend \
-          --source-bundle S3Bucket="healthy-wealthy-backend-deploy-2024",S3Key="deploy_package.zip" \
+          --application-name psu-healthy-wealthy \
+          --source-bundle S3Bucket="healthy-wealthy-backend-deploy",S3Key="deploy_package.zip" \
           --version-label "ver-${{ github.sha }}" \
           --description "commit-sha-${{ github.sha }}"
 
       - name: Deploy new ElasticBeanstalk Application Version
-        run: aws elasticbeanstalk update-environment --environment-name healthy-wealthy-prod-env --version-label "ver-${{ github.sha }}"
+        run: aws elasticbeanstalk update-environment --environment-name psu-healthy-wealthy-prod-backend --version-label "ver-${{ github.sha }}"
