@@ -26,7 +26,7 @@ router.post('/', upload.single('healthy-wealthy-image'), (req, res) => {
               INSERT INTO posts (name, description, image_url, price, quantity, purchase_date, seller_id, expiry_date)
               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
               RETURNING *
-          `, [name, description, data.location, price, quantity, purchaseDate, sellerId, expiryDate])
+          `, [name, description, data.Location, price, quantity, purchaseDate, sellerId, expiryDate])
       .then((sqlResult) => {
         res.status(200).json(sqlResult.rows[0]);
       })
