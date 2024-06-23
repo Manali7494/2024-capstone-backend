@@ -82,4 +82,56 @@ router.post('/', upload.single('healthy-wealthy-image'), (req, res) => {
     });
 });
 
+router.post('/:postId', upload.single('healthy-wealthy-image'), async (req, res) => {
+  const { postId } = req.params;
+  const {
+    name, description, price, quantity, purchaseDate, expiryDate, sellerId,
+  } = req.body || {};
+  const { file } = req;
+  let imageUploadPromise = Promise.resolve({ Location: null });
+
+  if (file) {
+    const params = {
+      Bucket: bucketName,
+      Key: `${Date.now()}-${name}`,
+      Body: fs.createReadStream(file.path),
+    };
+
+    const s3 = new req.aws.S3();
+    imageUploadPromise = new Promise((resolve, reject) => {
+      s3.upload(params, (s3Err, data) => {
+        if (s3Err) {
+          reject(s3Err);
+        } else {
+          resolve(data);
+        }
+      });
+    });
+  }
+
+  try {
+    const imageData = await imageUploadPromise;
+    const imageUrl = imageData.Location;
+
+    let updateQuery = 'UPDATE posts SET name = $1, description = $2, price = $3, quantity = $4, purchase_date = $5, expiry_date = $6, seller_id = $7';
+    const queryParams = [name, description, price, quantity, purchaseDate, expiryDate, sellerId];
+
+    if (imageUrl) {
+      updateQuery += ', image_url = $8 WHERE id = $9 RETURNING *';
+      queryParams.push(imageUrl, postId);
+    } else {
+      updateQuery += ' WHERE id = $8 RETURNING *';
+      queryParams.push(postId);
+    }
+    const result = await req.dbClient.query(updateQuery, queryParams);
+
+    if (result.rows.length > 0) {
+      res.json(result.rows[0]);
+    } else {
+      res.status(404).json({ error: 'Post not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update post', details: error.message });
+  }
+});
 module.exports = router;
