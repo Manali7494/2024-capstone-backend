@@ -15,24 +15,30 @@ router.get('/:postId', (req, res) => {
       if (sqlResult.rows.length > 0) {
         const post = sqlResult.rows[0];
         const s3 = new req.aws.S3();
-        let imageUrl = null;
         if (post.image_url) {
-          imageUrl = s3.getSignedUrl('getObject', {
+          return s3.getSignedUrl('getObject', {
             Bucket: bucketName,
             Key: post.image_url.split('/').pop(),
             Expires: 60 * 5,
+          }, (err, url) => {
+            res.status(200).json({
+              ...post,
+              imageUrl: url,
+              purchaseDate: post.purchase_date ? new Date(post.purchase_date).toISOString().split('T')[0] : null,
+              expiryDate: post.expiry_date ? new Date(post.expiry_date).toISOString().split('T')[0] : null,
+            });
           });
         }
 
         res.status(200).json({
           ...post,
-          imageUrl,
           purchaseDate: post.purchase_date ? new Date(post.purchase_date).toISOString().split('T')[0] : null,
           expiryDate: post.expiry_date ? new Date(post.expiry_date).toISOString().split('T')[0] : null,
         });
       } else {
         res.status(404).json({ error: 'Post not found' });
       }
+      return null;
     })
     .catch((dbErr) => {
       res.status(500).json({ error: dbErr.message });
