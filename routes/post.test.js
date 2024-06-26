@@ -140,22 +140,25 @@ describe('Posts', () => {
     });
   });
   describe('DELETE /posts/:postId', () => {
-    it('should delete a post successfully', async () => {
+    it('should delete a post successfully for the given user', async () => {
+      const userId = 'user123';
+      const postId = '1';
+
       try {
         await request(app)
-          .delete('/posts/1');
+          .delete(`/posts/${postId}`)
+          .send({ userId });
       } catch (err) {
         throw new Error(err);
       }
     });
 
-    it('should return error for a non-existent post', async () => {
-      app.use((req, res, next) => {
-        req.dbClient.query.mockResolvedValue({ rows: [], rowCount: 0 });
-        next();
-      });
+    it('should return error for a non-existent post or wrong user', async () => {
+      const userId = 'user123';
+      const postId = '999';
       await request(app)
-        .delete('/posts/999')
+        .delete(`/posts/${postId}`)
+        .send({ userId })
         .expect(404);
     });
   });

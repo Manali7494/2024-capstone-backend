@@ -144,8 +144,9 @@ router.post('/:postId', upload.single('healthy-wealthy-image'), async (req, res)
 router.delete('/:postId', async (req, res) => {
   try {
     const { postId } = req.params;
-    const deleteQuery = 'DELETE FROM posts WHERE id = $1 RETURNING *';
-    const queryParams = [postId];
+    const { userId } = req.body;
+    const deleteQuery = 'DELETE FROM posts WHERE id = $1 AND user_id = $2 RETURNING *';
+    const queryParams = [postId, userId];
 
     const result = await req.dbClient.query(deleteQuery, queryParams);
 
