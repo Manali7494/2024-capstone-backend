@@ -18,14 +18,16 @@ jest.mock('multer', () => jest.fn(() => ({
 
 jest.mock('fs');
 jest.mock('aws-sdk');
+const mockPost = { id: 1, title: 'Test Post' };
 
-const mockReadStream = jest.fn();
+const mockReadStream = jest.fn().mockResolvedValue({ rows: [mockPost], rowCount: 1 });
 fs.createReadStream = mockReadStream;
 
 const mockS3Upload = { upload: jest.fn(), getSignedUrl: jest.fn() };
 aws.S3 = jest.fn(() => ({ upload: mockS3Upload }));
 
 const mockQuery = jest.fn();
+
 const app = express();
 
 // app.use
@@ -34,6 +36,7 @@ app.use((req, res, next) => {
   req.dbClient = { query: mockQuery };
   next();
 });
+
 app.use('/', postRouter);
 
 describe('Posts', () => {
@@ -134,6 +137,26 @@ describe('Posts', () => {
       } catch (err) {
         throw new Error(err);
       }
+    });
+  });
+  describe('DELETE /posts/:postId', () => {
+    it('should delete a post successfully', async () => {
+      try {
+        await request(app)
+          .delete('/posts/1');
+      } catch (err) {
+        throw new Error(err);
+      }
+    });
+
+    it('should return error for a non-existent post', async () => {
+      app.use((req, res, next) => {
+        req.dbClient.query.mockResolvedValue({ rows: [], rowCount: 0 });
+        next();
+      });
+      await request(app)
+        .delete('/posts/999')
+        .expect(404);
     });
   });
 });
