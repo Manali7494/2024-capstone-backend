@@ -140,4 +140,22 @@ router.post('/:postId', upload.single('healthy-wealthy-image'), async (req, res)
     res.status(500).json({ error: 'Failed to update post', details: error.message });
   }
 });
+
+router.delete('/:postId', async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const deleteQuery = 'DELETE FROM posts WHERE id = $1 RETURNING *';
+    const queryParams = [postId];
+
+    const result = await req.dbClient.query(deleteQuery, queryParams);
+
+    if (result.rows.length > 0) {
+      res.json({ message: 'Post deleted successfully', deletedPost: result.rows[0] });
+    } else {
+      res.status(404).json({ error: 'Post not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete post', details: error.message });
+  }
+});
 module.exports = router;
