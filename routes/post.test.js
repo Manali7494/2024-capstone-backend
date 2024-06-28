@@ -29,6 +29,7 @@ aws.S3 = jest.fn(() => ({ upload: mockS3Upload }));
 const mockQuery = jest.fn();
 
 const app = express();
+app.use(express.json());
 
 // app.use
 app.use((req, res, next) => {
@@ -139,7 +140,7 @@ describe('Posts', () => {
       }
     });
   });
-  describe('DELETE /posts/:postId', () => {
+  describe('DELETE /:postId', () => {
     it('should delete a post successfully for the given user', async () => {
       const userId = 'user123';
       const postId = '1';
@@ -153,13 +154,52 @@ describe('Posts', () => {
       }
     });
 
-    it('should return error for a non-existent post or wrong user', async () => {
-      const userId = 'user123';
-      const postId = '999';
-      await request(app)
-        .delete(`/posts/${postId}`)
-        .send({ userId })
-        .expect(404);
+    it('should return 400 if user is not logged in', async () => {
+      const response = await request(app)
+        .delete('/1')
+        .send({});
+      expect(response.statusCode).toBe(400);
+      expect(response.body).toEqual({ error: 'User not logged in' });
+    });
+
+    it('should return 404 if post is not found', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      const response = await request(app)
+        .delete('/1')
+        .send({ userId: 'user123' })
+        .set('Accept', 'application/json')
+        .set('Content-Type', 'application/json');
+
+      expect(response.statusCode).toBe(404);
+      expect(response.body).toEqual({ error: 'Post not found' });
+    });
+
+    it('should return 403 if user is not authorized to delete the post', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [{ seller_id: 'anotherUser' }] });
+      const response = await request(app)
+        .delete('/1')
+        .send({ userId: 'user123' });
+      expect(response.statusCode).toBe(403);
+      expect(response.body).toEqual({ error: 'User is not authorized to delete this post' });
+    });
+
+    it('should delete the post successfully', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [{ seller_id: 'user123' }] });
+      mockQuery.mockResolvedValueOnce({ rows: [{ id: '1', title: 'Test Post', seller_id: 'user123' }] });
+      const response = await request(app)
+        .delete('/1')
+        .send({ userId: 'user123' });
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual({ message: 'Post deleted successfully', deletedPost: { id: '1', title: 'Test Post', seller_id: 'user123' } });
+    });
+
+    it('should return 500 if there is a server error', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Fake server error'));
+      const response = await request(app)
+        .delete('/1')
+        .send({ userId: 'user123' });
+      expect(response.statusCode).toBe(500);
+      expect(response.body).toEqual({ error: 'Failed to delete post', details: 'Fake server error' });
     });
   });
 });
