@@ -144,18 +144,33 @@ router.post('/:postId', upload.single('healthy-wealthy-image'), async (req, res)
 router.delete('/:postId', async (req, res) => {
   try {
     const { postId } = req.params;
-    const deleteQuery = 'DELETE FROM posts WHERE id = $1 RETURNING *';
-    const queryParams = [postId];
+    const { userId } = req.body;
 
+    if (!userId) {
+      return res.status(400).json({ error: 'User not logged in' });
+    }
+
+    const postCheckQuery = 'SELECT seller_id FROM posts WHERE id = $1';
+    const postCheckResult = await req.dbClient.query(postCheckQuery, [postId]);
+
+    if (postCheckResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+    const postOwnerId = postCheckResult.rows[0].seller_id;
+    if (postOwnerId !== userId) {
+      return res.status(403).json({ error: 'User is not authorized to delete this post' });
+    }
+
+    const deleteQuery = 'DELETE FROM posts WHERE id = $1 AND seller_id = $2 RETURNING *';
+    const queryParams = [postId, userId];
     const result = await req.dbClient.query(deleteQuery, queryParams);
 
     if (result.rows.length > 0) {
-      res.json({ message: 'Post deleted successfully', deletedPost: result.rows[0] });
-    } else {
-      res.status(404).json({ error: 'Post not found' });
+      return res.json({ message: 'Post deleted successfully', deletedPost: result.rows[0] });
     }
+    return res.status(404).json({ error: 'Post not found' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete post', details: error.message });
+    return res.status(500).json({ error: 'Failed to delete post', details: error.message });
   }
 });
 module.exports = router;
