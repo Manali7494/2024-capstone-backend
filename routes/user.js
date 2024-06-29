@@ -19,7 +19,6 @@ router.post('/', async (req, res) => {
 
 router.get('/:userId', async (req, res) => {
   const { userId } = req.params;
-
   const query = 'SELECT * FROM Users WHERE userId = $1';
   const values = [userId];
 
