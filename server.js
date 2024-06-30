@@ -8,7 +8,7 @@ const { Client } = require('pg');
 const app = express();
 
 const corsOptions = {
-  origin: ['https://main.d255ptb2b3ezjb.amplifyapp.com', 'https://d1r245uy9zk64m.cloudfront.net', 'http://localhost:3000'],
+  origin: ['https://main.d255ptb2b3ezjb.amplifyapp.com', 'https://d1r245uy9zk64m.cloudfront.net', 'http://localhost:3000', 'http://localhost:8081'],
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
   allowedHeaders: ['Origin', 'Access-Control-Request-Headers', 'Access-Control-Request-Method', 'Content-Type'],
 };
