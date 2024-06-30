@@ -8,6 +8,50 @@ const upload = multer({ dest: 'uploads/' });
 
 const router = express.Router();
 
+router.get('/', (req, res) => {
+  req.dbClient.query('SELECT * FROM posts')
+    .then(async (sqlResult) => {
+      const posts = sqlResult.rows;
+      const s3 = new req.aws.S3();
+
+      const postsWithImages = await Promise.all(posts.map(async (post) => {
+        if (post.image_url) {
+          const imageUrl = await new Promise((resolve, reject) => {
+            s3.getSignedUrl('getObject', {
+              Bucket: bucketName,
+              Key: post.image_url.split('/').pop(),
+              Expires: 60 * 5,
+            }, (err, url) => {
+              if (err) {
+                reject(err);
+              } else {
+                resolve(url);
+              }
+            });
+          });
+
+          return {
+            ...post,
+            imageUrl,
+            purchaseDate: post.purchase_date ? new Date(post.purchase_date).toISOString().split('T')[0] : null,
+            expiryDate: post.expiry_date ? new Date(post.expiry_date).toISOString().split('T')[0] : null,
+          };
+        }
+
+        return {
+          ...post,
+          purchaseDate: post.purchase_date ? new Date(post.purchase_date).toISOString().split('T')[0] : null,
+          expiryDate: post.expiry_date ? new Date(post.expiry_date).toISOString().split('T')[0] : null,
+        };
+      }));
+
+      res.status(200).json(postsWithImages);
+    })
+    .catch((dbErr) => {
+      res.status(500).json({ error: dbErr.message });
+    });
+});
+
 router.get('/:postId', (req, res) => {
   const { postId } = req.params;
   req.dbClient.query('SELECT * FROM posts WHERE id = $1', [postId])

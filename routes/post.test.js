@@ -26,7 +26,15 @@ fs.createReadStream = mockReadStream;
 const mockS3Upload = { upload: jest.fn(), getSignedUrl: jest.fn() };
 aws.S3 = jest.fn(() => ({ upload: mockS3Upload }));
 
-const mockQuery = jest.fn();
+const mockPosts = [
+  {
+    id: 1, title: 'Post 1', content: 'Content 1', purchase_date: new Date('2024-01-01').toISOString(), expiry_date: new Date('2024-12-01').toISOString(),
+  },
+  {
+    id: 2, title: 'Post 2', content: 'Content 2', purchase_date: new Date('2024-01-01').toISOString(), expiry_date: new Date('2024-12-01').toISOString(),
+  },
+];
+const mockQuery = jest.fn().mockResolvedValue({ rows: mockPosts, rowCount: 2 });
 
 const app = express();
 app.use(express.json());
@@ -41,6 +49,31 @@ app.use((req, res, next) => {
 app.use('/', postRouter);
 
 describe('Posts', () => {
+  describe('GET /', () => {
+    it('It should fetch posts without pictures', async () => {
+      const response = await request(app).get('/');
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual([{
+        content: 'Content 1',
+        expiryDate: '2024-12-01',
+        expiry_date: '2024-12-01T00:00:00.000Z',
+        id: 1,
+        purchaseDate: '2024-01-01',
+        purchase_date: '2024-01-01T00:00:00.000Z',
+        title: 'Post 1',
+      },
+      {
+        content: 'Content 2',
+        expiryDate: '2024-12-01',
+        expiry_date: '2024-12-01T00:00:00.000Z',
+        id: 2,
+        purchaseDate: '2024-01-01',
+        purchase_date: '2024-01-01T00:00:00.000Z',
+        title: 'Post 2',
+      },
+      ]);
+    });
+  });
   describe('POST /', () => {
     it('should properly work', async () => {
       const postData = {
@@ -140,6 +173,7 @@ describe('Posts', () => {
       }
     });
   });
+
   describe('DELETE /:postId', () => {
     it('should delete a post successfully for the given user', async () => {
       const userId = 'user123';
