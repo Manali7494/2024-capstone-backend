@@ -16,6 +16,28 @@ jest.mock('multer', () => jest.fn(() => ({
   }),
 })));
 
+jest.mock('./helpers/nutrition', () => ({
+  fetchNutritionDetails: jest.fn().mockResolvedValue({
+    calories: 100,
+    protein: 5,
+  }),
+  saveNutritionToDatabase: jest.fn().mockResolvedValue({
+    success: true,
+  }),
+  mapPostToNutritionInfo: jest.fn().mockImplementation((post, nutritionInfo) => ({
+    postId: post.id,
+    ...nutritionInfo,
+  })),
+  updateNutritionInDatabase: jest.fn().mockResolvedValue({
+    success: true,
+  }),
+  fetchNutritionDetailsByPostId: jest.fn().mockResolvedValue({
+    postId: 1,
+    calories: 100,
+    protein: 5,
+  }),
+}));
+
 jest.mock('fs');
 jest.mock('aws-sdk');
 const mockPost = { id: 1, title: 'Test Post' };
