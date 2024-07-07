@@ -1,6 +1,13 @@
 const express = require('express');
 const multer = require('multer');
 const fs = require('fs');
+const {
+  fetchNutritionDetails,
+  saveNutritionToDatabase,
+  mapPostToNutritionInfo,
+  updateNutritionInDatabase,
+  fetchNutritionDetailsByPostId,
+} = require('./helpers/nutrition');
 
 const bucketName = 'healthy-wealthy-backend-deploy';
 
@@ -50,6 +57,18 @@ router.get('/', (req, res) => {
     .catch((dbErr) => {
       res.status(500).json({ error: dbErr.message });
     });
+});
+
+router.get('/:postId/nutrition', async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const nutritionDetails = await fetchNutritionDetailsByPostId(req.dbClient, postId);
+
+    return res.json(nutritionDetails);
+  } catch (error) {
+    console.log('error', error);
+    return res.status(500).json({ error: 'Failed to fetch nutrition details', details: error.message });
+  }
 });
 
 router.get('/:postId', (req, res) => {
@@ -125,7 +144,13 @@ router.post('/', upload.single('healthy-wealthy-image'), (req, res) => {
       sellerId, expiryDate]);
   })
     .then((sqlResult) => {
-      res.status(200).json(sqlResult.rows[0]);
+      const post = sqlResult.rows[0];
+      return fetchNutritionDetails(post.name)
+        .then((nutritionInfo) => saveNutritionToDatabase(
+          req.dbClient,
+          mapPostToNutritionInfo(post, nutritionInfo),
+        ))
+        .then(() => res.status(200).json(sqlResult.rows[0]));
     })
     .catch((error) => {
       res.status(500).json({ error: error.message });
@@ -176,10 +201,15 @@ router.post('/:postId', upload.single('healthy-wealthy-image'), async (req, res)
     const result = await req.dbClient.query(updateQuery, queryParams);
 
     if (result.rows.length > 0) {
-      res.json(result.rows[0]);
-    } else {
-      res.status(404).json({ error: 'Post not found' });
+      const post = result.rows[0];
+      return fetchNutritionDetails(post.name)
+        .then((nutritionInfo) => updateNutritionInDatabase(
+          req.dbClient,
+          mapPostToNutritionInfo(post, nutritionInfo),
+        ))
+        .then(() => res.status(200).json(result.rows[0]));
     }
+    res.status(404).json({ error: 'Post not found' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update post', details: error.message });
   }
