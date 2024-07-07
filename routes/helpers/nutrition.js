@@ -47,11 +47,15 @@ const mapPostToNutritionInfo = (post, nutritionInfo) => ({
   calories: nutritionInfo.calories,
   diet_labels: nutritionInfo.dietLabels,
   health_labels: nutritionInfo.healthLabels,
-  fat: nutritionInfo.totalNutrients.FAT.quantity,
-  protein: nutritionInfo.totalNutrients.PROCNT.quantity,
-  carbs: nutritionInfo.totalNutrients.CHOCDF.quantity,
-  sugar: nutritionInfo.totalNutrients.SUGAR.quantity,
-  fiber: nutritionInfo.totalNutrients.FIBTG.quantity,
+  fat: nutritionInfo.totalNutrients.length ? nutritionInfo.totalNutrients.FAT.quantity : 0,
+  protein: nutritionInfo.totalNutrients.length
+    ? nutritionInfo.totalNutrients.length.PROCNT.quantity : 0,
+  carbs: nutritionInfo.totalNutrients.length
+    ? nutritionInfo.totalNutrients.length.CHOCDF.quantity : 0,
+  sugar: nutritionInfo.totalNutrients.length
+    ? nutritionInfo.totalNutrients.SUGAR.quantity : 0,
+  fiber: nutritionInfo.totalNutrients.length
+    ? nutritionInfo.totalNutrients.FIBTG.quantity : 0,
 });
 
 const updateNutritionInDatabase = async (dbClient, nutritionDetails) => {
