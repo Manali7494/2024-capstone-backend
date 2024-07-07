@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const express = require('express');
 const multer = require('multer');
 const fs = require('fs');
@@ -14,6 +15,18 @@ const bucketName = 'healthy-wealthy-backend-deploy';
 const upload = multer({ dest: 'uploads/' });
 
 const router = express.Router();
+
+async function checkIfPostIdExists(dbClient, postId) {
+  const query = 'SELECT EXISTS(SELECT 1 FROM posts WHERE id = $1)';
+  const values = [postId];
+  try {
+    const res = await dbClient.query(query, values);
+    return res.rows[0].exists;
+  } catch (err) {
+    console.error('Error checking if postId exists', err);
+    throw err;
+  }
+}
 
 router.get('/', (req, res) => {
   req.dbClient.query('SELECT * FROM posts')
@@ -61,12 +74,22 @@ router.get('/', (req, res) => {
 
 router.get('/:postId/nutrition', async (req, res) => {
   try {
-    const { postId } = req.params;
-    const nutritionDetails = await fetchNutritionDetailsByPostId(req.dbClient, postId);
+    if (!req.query || !req.query.userId) {
+      return res.status(400).json({ error: 'User not logged in' });
+    }
 
+    const { postId } = req.params;
+    if (Number.isNaN(parseInt(postId, 10))) {
+      return res.status(400).json({ error: 'Invalid postId' });
+    }
+
+    const exists = await checkIfPostIdExists(req.dbClient, postId);
+    if (!exists) {
+      return res.status(404).json({ error: 'Post does not exist' });
+    }
+    const nutritionDetails = await fetchNutritionDetailsByPostId(req.dbClient, postId);
     return res.json(nutritionDetails);
   } catch (error) {
-    console.log('error', error);
     return res.status(500).json({ error: 'Failed to fetch nutrition details', details: error.message });
   }
 });
