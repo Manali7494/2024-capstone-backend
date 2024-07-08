@@ -42,21 +42,24 @@ const saveNutritionToDatabase = async (dbClient, nutritionDetails) => {
   }
 };
 
-const mapPostToNutritionInfo = (post, nutritionInfo) => ({
-  post_id: post.id,
-  calories: nutritionInfo.calories,
-  diet_labels: nutritionInfo.dietLabels,
-  health_labels: nutritionInfo.healthLabels,
-  fat: nutritionInfo.totalNutrients.length ? nutritionInfo.totalNutrients.FAT.quantity : 0,
-  protein: nutritionInfo.totalNutrients.length
-    ? nutritionInfo.totalNutrients.length.PROCNT.quantity : 0,
-  carbs: nutritionInfo.totalNutrients.length
-    ? nutritionInfo.totalNutrients.length.CHOCDF.quantity : 0,
-  sugar: nutritionInfo.totalNutrients.length
-    ? nutritionInfo.totalNutrients.SUGAR.quantity : 0,
-  fiber: nutritionInfo.totalNutrients.length
-    ? nutritionInfo.totalNutrients.FIBTG.quantity : 0,
-});
+const mapPostToNutritionInfo = (post, nutritionInfo) => {
+  const hasMacroNutrients = Object.keys(nutritionInfo.totalNutrients).length;
+  return ({
+    post_id: post.id,
+    calories: nutritionInfo.calories,
+    diet_labels: nutritionInfo.dietLabels,
+    health_labels: nutritionInfo.healthLabels,
+    fat: hasMacroNutrients ? nutritionInfo.totalNutrients.FAT.quantity : 0,
+    protein: hasMacroNutrients
+      ? nutritionInfo.totalNutrients.PROCNT.quantity : 0,
+    carbs: hasMacroNutrients
+      ? nutritionInfo.totalNutrients.CHOCDF.quantity : 0,
+    sugar: hasMacroNutrients
+      ? nutritionInfo.totalNutrients.SUGAR.quantity : 0,
+    fiber: hasMacroNutrients
+      ? nutritionInfo.totalNutrients.FIBTG.quantity : 0,
+  });
+};
 
 const updateNutritionInDatabase = async (dbClient, nutritionDetails) => {
   const query = `
