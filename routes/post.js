@@ -8,6 +8,7 @@ const {
   mapPostToNutritionInfo,
   updateNutritionInDatabase,
   fetchNutritionDetailsByPostId,
+  checkIfPostIdExists,
 } = require('./helpers/nutrition');
 
 const bucketName = 'healthy-wealthy-backend-deploy';
@@ -15,18 +16,6 @@ const bucketName = 'healthy-wealthy-backend-deploy';
 const upload = multer({ dest: 'uploads/' });
 
 const router = express.Router();
-
-async function checkIfPostIdExists(dbClient, postId) {
-  const query = 'SELECT EXISTS(SELECT 1 FROM posts WHERE id = $1)';
-  const values = [postId];
-  try {
-    const res = await dbClient.query(query, values);
-    return res.rows[0].exists;
-  } catch (err) {
-    console.error('Error checking if postId exists', err);
-    throw err;
-  }
-}
 
 router.get('/', (req, res) => {
   req.dbClient.query('SELECT * FROM posts')

@@ -102,8 +102,21 @@ const fetchNutritionDetailsByPostId = async (dbClient, postId) => {
   }
 };
 
+const checkIfPostIdExists = async (dbClient, postId) => {
+  const query = 'SELECT EXISTS(SELECT 1 FROM posts WHERE id = $1)';
+  const values = [postId];
+  try {
+    const res = await dbClient.query(query, values);
+    return res.rows[0].exists;
+  } catch (err) {
+    console.error('Error checking if postId exists', err);
+    throw err;
+  }
+};
+
 module.exports.fetchNutritionDetails = fetchNutritionDetails;
 module.exports.saveNutritionToDatabase = saveNutritionToDatabase;
 module.exports.mapPostToNutritionInfo = mapPostToNutritionInfo;
 module.exports.updateNutritionInDatabase = updateNutritionInDatabase;
 module.exports.fetchNutritionDetailsByPostId = fetchNutritionDetailsByPostId;
+module.exports.checkIfPostIdExists = checkIfPostIdExists;
