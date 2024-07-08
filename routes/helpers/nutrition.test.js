@@ -5,6 +5,7 @@ const {
   mapPostToNutritionInfo,
   updateNutritionInDatabase,
   fetchNutritionDetailsByPostId,
+  checkIfPostIdExists,
 } = require('./nutrition');
 
 jest.mock('axios');
@@ -162,6 +163,28 @@ describe('Nutrition', () => {
 
       expect(mockDbClient.query).toHaveBeenCalledWith('SELECT * FROM nutrition WHERE post_id = $1', [postId]);
       expect(result).toBeNull();
+    });
+  });
+
+  describe('checkIfPostIdExists', () => {
+    const mockDbClient = {
+      query: jest.fn(),
+    };
+
+    it('should return true if the postID exists', async () => {
+      mockDbClient.query.mockResolvedValueOnce({ rows: [{ exists: true }] });
+
+      const result = await checkIfPostIdExists(mockDbClient, '1');
+      expect(result).toBe(true);
+      expect(mockDbClient.query).toHaveBeenCalledWith('SELECT EXISTS(SELECT 1 FROM posts WHERE id = $1)', ['1']);
+    });
+
+    it('should return false if the postID does not exist', async () => {
+      mockDbClient.query.mockResolvedValueOnce({ rows: [{ exists: false }] });
+
+      const result = await checkIfPostIdExists(mockDbClient, '2');
+      expect(result).toBe(false);
+      expect(mockDbClient.query).toHaveBeenCalledWith('SELECT EXISTS(SELECT 1 FROM posts WHERE id = $1)', ['2']);
     });
   });
 });
