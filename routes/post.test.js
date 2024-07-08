@@ -3,6 +3,10 @@ const express = require('express');
 const fs = require('fs');
 const aws = require('aws-sdk');
 const postRouter = require('./post');
+const {
+  fetchNutritionDetailsByPostId,
+  checkIfPostIdExists,
+} = require('./helpers/nutrition');
 
 // mocks
 jest.mock('multer', () => jest.fn(() => ({
@@ -36,6 +40,7 @@ jest.mock('./helpers/nutrition', () => ({
     calories: 100,
     protein: 5,
   }),
+  checkIfPostIdExists: jest.fn().mockResolvedValue(true),
 }));
 
 jest.mock('fs');
@@ -256,6 +261,52 @@ describe('Posts', () => {
         .send({ userId: 'user123' });
       expect(response.statusCode).toBe(500);
       expect(response.body).toEqual({ error: 'Failed to delete post', details: 'Fake server error' });
+    });
+  });
+
+  describe('GET /:postId/nutrition', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should return 400 if userId is not provided', async () => {
+      const response = await request(app).get('/1/nutrition');
+      expect(response.statusCode).toBe(400);
+      expect(response.body).toEqual({ error: 'User not logged in' });
+    });
+
+    it('should return 400 for invalid postId', async () => {
+      const response = await request(app).get('/abc/nutrition?userId=123');
+      expect(response.statusCode).toBe(400);
+      expect(response.body).toEqual({ error: 'Invalid postId' });
+    });
+
+    it('should return 404 if post does not exist', async () => {
+      checkIfPostIdExists.mockResolvedValue(false);
+      const response = await request(app).get('/999/nutrition?userId=123');
+      expect(response.statusCode).toBe(404);
+      expect(response.body).toEqual({ error: 'Post does not exist' });
+    });
+
+    it('should fetch nutrition details for a valid postId', async () => {
+      checkIfPostIdExists.mockResolvedValue(true);
+      fetchNutritionDetailsByPostId.mockResolvedValue({
+        calories: 200,
+        protein: 10,
+      });
+      const response = await request(app).get('/1/nutrition?userId=123');
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual({
+        calories: 200,
+        protein: 10,
+      });
+    });
+
+    it('should handle errors gracefully', async () => {
+      checkIfPostIdExists.mockRejectedValue(new Error('Database error'));
+      const response = await request(app).get('/1/nutrition?userId=123');
+      expect(response.statusCode).toBe(500);
+      expect(response.body).toEqual({ error: 'Failed to fetch nutrition details', details: 'Database error' });
     });
   });
 });

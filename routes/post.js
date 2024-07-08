@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const express = require('express');
 const multer = require('multer');
 const fs = require('fs');
@@ -7,6 +8,7 @@ const {
   mapPostToNutritionInfo,
   updateNutritionInDatabase,
   fetchNutritionDetailsByPostId,
+  checkIfPostIdExists,
 } = require('./helpers/nutrition');
 
 const bucketName = 'healthy-wealthy-backend-deploy';
@@ -61,12 +63,22 @@ router.get('/', (req, res) => {
 
 router.get('/:postId/nutrition', async (req, res) => {
   try {
-    const { postId } = req.params;
-    const nutritionDetails = await fetchNutritionDetailsByPostId(req.dbClient, postId);
+    if (!req.query || !req.query.userId) {
+      return res.status(400).json({ error: 'User not logged in' });
+    }
 
+    const { postId } = req.params;
+    if (Number.isNaN(parseInt(postId, 10))) {
+      return res.status(400).json({ error: 'Invalid postId' });
+    }
+
+    const exists = await checkIfPostIdExists(req.dbClient, postId);
+    if (!exists) {
+      return res.status(404).json({ error: 'Post does not exist' });
+    }
+    const nutritionDetails = await fetchNutritionDetailsByPostId(req.dbClient, postId);
     return res.json(nutritionDetails);
   } catch (error) {
-    console.log('error', error);
     return res.status(500).json({ error: 'Failed to fetch nutrition details', details: error.message });
   }
 });
