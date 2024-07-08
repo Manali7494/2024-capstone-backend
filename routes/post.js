@@ -17,6 +17,8 @@ const upload = multer({ dest: 'uploads/' });
 
 const router = express.Router();
 
+// Routes
+
 router.get('/', (req, res) => {
   req.dbClient.query('SELECT * FROM posts')
     .then(async (sqlResult) => {
