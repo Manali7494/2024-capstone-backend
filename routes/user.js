@@ -8,7 +8,7 @@ router.post('/', async (req, res) => {
   } = req.body;
 
   const userQuery = 'INSERT INTO Users (userId, username, email, name, phoneNumber) VALUES ($1, $2, $3, $4, $5)';
-  const contactQuery = 'INSERT INTO contact_information (userId, contactEmail, contactPhoneNumber) VALUES ($1, $2, $3)';
+  const contactQuery = 'INSERT INTO contact_information (userId, contact_email, contact_number) VALUES ($1, $2, $3)';
   const userValues = [userId, username, email, name, phoneNumber];
   const contactValues = [userId, email, phoneNumber];
   try {
