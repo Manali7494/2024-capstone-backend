@@ -87,35 +87,44 @@ router.get('/:postId/nutrition', async (req, res) => {
 
 router.get('/:postId', (req, res) => {
   const { postId } = req.params;
+  const { userId } = req.query;
+
   req.dbClient.query('SELECT * FROM posts WHERE id = $1', [postId])
-    .then((sqlResult) => {
-      if (sqlResult.rows.length > 0) {
-        const post = sqlResult.rows[0];
-        const s3 = new req.aws.S3();
-        if (post.image_url) {
-          return s3.getSignedUrl('getObject', {
-            Bucket: bucketName,
-            Key: post.image_url.split('/').pop(),
-            Expires: 60 * 5,
-          }, (err, url) => {
+    .then((postsResults) => {
+      req.dbClient.query('SELECT 1 FROM interested_posts WHERE userId = $1 AND postId = $2', [userId, postId])
+        .then((interestResult) => {
+          const isUserInterested = interestResult.rows.length > 0;
+          if (postsResults.rows.length > 0) {
+            const post = postsResults.rows[0];
+            const s3 = new req.aws.S3();
+            if (post.image_url) {
+              return s3.getSignedUrl('getObject', {
+                Bucket: bucketName,
+                Key: post.image_url.split('/').pop(),
+                Expires: 60 * 5,
+              }, (err, url) => {
+                res.status(200).json({
+                  ...post,
+                  imageUrl: url,
+                  purchaseDate: post.purchase_date ? new Date(post.purchase_date).toISOString().split('T')[0] : null,
+                  expiryDate: post.expiry_date ? new Date(post.expiry_date).toISOString().split('T')[0] : null,
+                  isUserInterested,
+                });
+              });
+            }
             res.status(200).json({
               ...post,
-              imageUrl: url,
               purchaseDate: post.purchase_date ? new Date(post.purchase_date).toISOString().split('T')[0] : null,
               expiryDate: post.expiry_date ? new Date(post.expiry_date).toISOString().split('T')[0] : null,
+              isUserInterested,
             });
-          });
-        }
-
-        res.status(200).json({
-          ...post,
-          purchaseDate: post.purchase_date ? new Date(post.purchase_date).toISOString().split('T')[0] : null,
-          expiryDate: post.expiry_date ? new Date(post.expiry_date).toISOString().split('T')[0] : null,
+          } else {
+            res.status(404).json({ error: 'Post not found' });
+          }
+          return null;
+        }).catch(() => {
+          res.status(404).json({ error: 'Error with interested posts' });
         });
-      } else {
-        res.status(404).json({ error: 'Post not found' });
-      }
-      return null;
     })
     .catch((dbErr) => {
       res.status(500).json({ error: dbErr.message });
@@ -261,4 +270,27 @@ router.delete('/:postId', async (req, res) => {
     return res.status(500).json({ error: 'Failed to delete post', details: error.message });
   }
 });
+
+router.post('/:postId/interested', async (req, res) => {
+  const { postId } = req.params;
+  const { userId } = req.body;
+
+  try {
+    const checkQuery = 'SELECT * FROM interested_posts WHERE userId = $1 AND postId = $2';
+    const checkResult = await req.dbClient.query(checkQuery, [userId, postId]);
+
+    if (checkResult.rows.length > 0) {
+      const deleteQuery = 'DELETE FROM interested_posts WHERE userId = $1 AND postId = $2';
+      await req.dbClient.query(deleteQuery, [userId, postId]);
+      return res.json({ message: 'Interest removed successfully' });
+    }
+
+    const insertQuery = 'INSERT INTO interested_posts (userId, postId) VALUES ($1, $2)';
+    await req.dbClient.query(insertQuery, [userId, postId]);
+    return res.json({ message: 'Interest added successfully' });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to update interest', details: error.message });
+  }
+});
+
 module.exports = router;
