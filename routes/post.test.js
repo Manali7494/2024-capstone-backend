@@ -309,4 +309,36 @@ describe('Posts', () => {
       expect(response.body).toEqual({ error: 'Failed to fetch nutrition details', details: 'Database error' });
     });
   });
+
+  describe('POST /:postId/interested', () => {
+    it('should add interest successfully', async () => {
+      const postId = '1';
+      const userId = 'user123';
+      mockQuery.mockResolvedValueOnce({ rows: [{ userId, postId }] });
+
+      const response = await request(app)
+        .post(`/${postId}/interested`)
+        .send({ userId });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual({ message: 'Interest added successfully' });
+    });
+
+    it('should return an error if the database query fails', async () => {
+      const postId = '2';
+      const userId = 'user456';
+
+      mockQuery.mockRejectedValueOnce(new Error('Failed to update interest'));
+
+      const response = await request(app)
+        .post(`/${postId}/interested`)
+        .send({ userId });
+
+      expect(response.statusCode).toBe(500);
+      expect(response.body).toEqual({
+        details: 'Failed to update interest',
+        error: 'Failed to update interest',
+      });
+    });
+  });
 });
