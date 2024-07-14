@@ -78,4 +78,35 @@ describe('User Routes', () => {
       expect(response.body).toEqual({ message: 'Error' });
     });
   });
+
+  describe('GET /:userId/contactInformation', () => {
+    const userId = '1';
+    const contactInfo = {
+      userId: '1',
+      email: 'test@example.com',
+      phoneNumber: '1234567890',
+      address: '123 Test St',
+    };
+
+    it('should return contact information if found', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [contactInfo] });
+      const response = await request(app).get(`/${userId}/contactInformation`);
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual(contactInfo);
+    });
+
+    it('should return 404 if contact information not found', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      const response = await request(app).get(`/${userId}/contactInformation`);
+      expect(response.statusCode).toBe(404);
+      expect(response.body).toEqual({ message: 'Contact information not found' });
+    });
+
+    it('should return an error if the database operation fails', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Query failed'));
+      const response = await request(app).get(`/${userId}/contactInformation`);
+      expect(response.statusCode).toBe(500);
+      expect(response.body).toEqual({ message: 'Error' });
+    });
+  });
 });
