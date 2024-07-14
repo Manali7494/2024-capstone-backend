@@ -341,4 +341,35 @@ describe('Posts', () => {
       });
     });
   });
+
+  describe('POST /:postId/interested', () => {
+    const postId = '1';
+    const userId = 'user123';
+
+    it('should add interest successfully', async () => {
+      mockQuery.mockResolvedValueOnce();
+
+      const response = await request(app)
+        .post(`/${postId}/interested`)
+        .send({ userId });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual({ message: 'Interest added successfully' });
+      expect(mockQuery).toHaveBeenCalledWith(
+        'INSERT INTO interested_posts (userId, postId) VALUES ($1, $2)',
+        [userId, postId],
+      );
+    });
+
+    it('should return an error if the database query fails', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Query failed'));
+
+      const response = await request(app)
+        .post(`/${postId}/interested`)
+        .send({ userId });
+
+      expect(response.statusCode).toBe(500);
+      expect(response.body).toEqual({ error: 'Failed to update interest', details: 'Query failed' });
+    });
+  });
 });
