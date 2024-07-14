@@ -274,8 +274,16 @@ router.delete('/:postId', async (req, res) => {
 router.post('/:postId/interested', async (req, res) => {
   const { postId } = req.params;
   const { userId } = req.body;
-
   try {
+    const checkQuery = 'SELECT * FROM interested_posts WHERE userId = $1 AND postId = $2';
+    const checkResult = await req.dbClient.query(checkQuery, [userId, postId]);
+
+    if (checkResult.rows.length > 0) {
+      const deleteQuery = 'DELETE FROM interested_posts WHERE userId = $1 AND postId = $2';
+      await req.dbClient.query(deleteQuery, [userId, postId]);
+      return res.json({ message: 'Interest removed successfully' });
+    }
+
     const insertQuery = 'INSERT INTO interested_posts (userId, postId) VALUES ($1, $2)';
     await req.dbClient.query(insertQuery, [userId, postId]);
     return res.json({ message: 'Interest added successfully' });
