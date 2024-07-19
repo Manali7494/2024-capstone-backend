@@ -1,0 +1,3 @@
+INSERT INTO user_nutrition_preference (userId, number_of_items, calories, fat, carbohydrate, fiber, sugar, protein, diet_labels, health_labels) VALUES
+('user1', 5, 2000.0, 70.0, 310.0, 30.0, 90.0, 50.0, '[{"low-carb": 1}, {"high-protein": 2}]', '[{"vegan": 1}, {"gluten-free": 2}]'),
+('user2', 3, 1500.0, 50.0, 200.0, 25.0, 60.0, 40.0, '[{"keto": 1}, {"paleo": 2}]', '[{"dairy-free": 1}, {"peanut-free": 2}]');
