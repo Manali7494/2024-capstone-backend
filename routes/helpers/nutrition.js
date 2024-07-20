@@ -188,6 +188,68 @@ async function updateOrInsertUserNutritionPreference(dbClient, userId, newValues
   }
 }
 
+async function fetchUserNutritionPreferenceById(dbClient, userId) {
+  try {
+    const queryText = 'SELECT * FROM user_nutrition_preference WHERE userId = $1';
+    const res = await dbClient.query(queryText, [userId]);
+    return res.rows;
+  } catch (error) {
+    console.error('Error fetching user nutrition preference by ID:', error);
+    throw error;
+  }
+}
+
+// Helper functions for ranking posts based on user preferences
+function calculateNutritionalScore(post, preferences, property) {
+  const postValue = Number(post[property]) || 0;
+  const preferenceValue = Number(preferences[property]) || 0;
+  if (postValue === 0 && preferenceValue === 0) return 0;
+  const score = Math.abs(postValue - preferenceValue) / (postValue + preferenceValue);
+  const relativeScore = 1 - score;
+  return relativeScore;
+}
+
+function calculateLabelScore(post, preferences, labelType) {
+  const preferenceLabels = preferences[labelType] || {};
+  const postLabels = post[labelType] || [];
+  let score = 0;
+  postLabels.forEach((label) => {
+    if (label in preferenceLabels) score += preferenceLabels[label];
+  });
+  return score;
+}
+
+function rankPostsByUserPreferences(posts, userPreference) {
+  return posts.map((post) => {
+    const scores = {
+      calories: calculateNutritionalScore(post, userPreference, 'calories'),
+      fat: calculateNutritionalScore(post, userPreference, 'fat'),
+      sugar: calculateNutritionalScore(post, userPreference, 'sugar'),
+      carbohydrate: calculateNutritionalScore(post, userPreference, 'carbohydrate'),
+      protein: calculateNutritionalScore(post, userPreference, 'protein'),
+      fiber: calculateNutritionalScore(post, userPreference, 'fiber'),
+      dietLabels: calculateLabelScore(post, userPreference, 'diet_labels'),
+      healthLabels: calculateLabelScore(post, userPreference, 'health_labels'),
+    };
+
+    const weightedScore = (
+      scores.calories * 0.35
+        + scores.dietLabels * 0.20
+        + scores.healthLabels * 0.20
+        + scores.fat * 0.05
+        + scores.sugar * 0.05
+        + scores.carbohydrate * 0.05
+        + scores.protein * 0.05
+        + scores.fiber * 0.05
+    );
+
+    return {
+      post,
+      score: Number.isNaN(weightedScore) ? 0 : weightedScore,
+    };
+  }).sort((a, b) => b.score - a.score);
+}
+
 module.exports.fetchNutritionDetails = fetchNutritionDetails;
 module.exports.saveNutritionToDatabase = saveNutritionToDatabase;
 module.exports.mapPostToNutritionInfo = mapPostToNutritionInfo;
@@ -195,3 +257,5 @@ module.exports.updateNutritionInDatabase = updateNutritionInDatabase;
 module.exports.fetchNutritionDetailsByPostId = fetchNutritionDetailsByPostId;
 module.exports.checkIfPostIdExists = checkIfPostIdExists;
 module.exports.updateOrInsertUserNutritionPreference = updateOrInsertUserNutritionPreference;
+module.exports.fetchUserNutritionPreferenceById = fetchUserNutritionPreferenceById;
+module.exports.rankPostsByUserPreferences = rankPostsByUserPreferences;
