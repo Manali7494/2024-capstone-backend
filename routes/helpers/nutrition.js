@@ -254,6 +254,10 @@ const calculateWeightedPostsScores = (posts, userPreference) => {
   });
 };
 
+function rankPostsByUserPreferences(posts, userPreference) {
+  return calculateWeightedPostsScores(posts, userPreference).sort((a, b) => b.score - a.score);
+}
+
 module.exports.fetchNutritionDetails = fetchNutritionDetails;
 module.exports.saveNutritionToDatabase = saveNutritionToDatabase;
 module.exports.mapPostToNutritionInfo = mapPostToNutritionInfo;
@@ -264,3 +268,4 @@ module.exports.updateOrInsertUserNutritionPreference = updateOrInsertUserNutriti
 module.exports.fetchUserNutritionPreferenceById = fetchUserNutritionPreferenceById;
 module.exports.calculateWeightedPostsScores = calculateWeightedPostsScores;
 module.exports.calculateNutritionalScore = calculateNutritionalScore;
+module.exports.rankPostsByUserPreferences = rankPostsByUserPreferences;
