@@ -219,7 +219,7 @@ function calculateLabelScore(post, preferences, labelType) {
   return score;
 }
 
-function rankPostsByUserPreferences(posts, userPreference) {
+function calculatePostsScores(posts, userPreference) {
   return posts.map((post) => {
     const scores = {
       calories: calculateNutritionalScore(post, userPreference, 'calories'),
@@ -247,7 +247,11 @@ function rankPostsByUserPreferences(posts, userPreference) {
       post,
       score: Number.isNaN(weightedScore) ? 0 : weightedScore,
     };
-  }).sort((a, b) => b.score - a.score);
+  });
+}
+
+function rankPostsByUserPreferences(posts, userPreference) {
+  return calculatePostsScores(posts, userPreference).sort((a, b) => b.score - a.score);
 }
 
 module.exports.fetchNutritionDetails = fetchNutritionDetails;
