@@ -232,6 +232,14 @@ function calculatePostsScores(posts, userPreference) {
       healthLabels: calculateLabelScore(post, userPreference, 'health_labels'),
     };
 
+    return scores;
+  });
+}
+
+const calculateWeightedPostsScores = (posts, userPreference) => {
+  const postsWithScores = calculatePostsScores(posts, userPreference);
+
+  postsWithScores.map((scores) => {
     const weightedScore = (
       scores.calories * 0.35
         + scores.dietLabels * 0.20
@@ -242,17 +250,9 @@ function calculatePostsScores(posts, userPreference) {
         + scores.protein * 0.05
         + scores.fiber * 0.05
     );
-
-    return {
-      post,
-      score: Number.isNaN(weightedScore) ? 0 : weightedScore,
-    };
+    return Number.isNaN(weightedScore) ? 0 : weightedScore;
   });
-}
-
-function rankPostsByUserPreferences(posts, userPreference) {
-  return calculatePostsScores(posts, userPreference).sort((a, b) => b.score - a.score);
-}
+};
 
 module.exports.fetchNutritionDetails = fetchNutritionDetails;
 module.exports.saveNutritionToDatabase = saveNutritionToDatabase;
@@ -262,4 +262,5 @@ module.exports.fetchNutritionDetailsByPostId = fetchNutritionDetailsByPostId;
 module.exports.checkIfPostIdExists = checkIfPostIdExists;
 module.exports.updateOrInsertUserNutritionPreference = updateOrInsertUserNutritionPreference;
 module.exports.fetchUserNutritionPreferenceById = fetchUserNutritionPreferenceById;
-module.exports.rankPostsByUserPreferences = rankPostsByUserPreferences;
+module.exports.calculateWeightedPostsScores = calculateWeightedPostsScores;
+module.exports.calculateNutritionalScore = calculateNutritionalScore;
