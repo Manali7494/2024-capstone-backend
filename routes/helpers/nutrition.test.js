@@ -6,6 +6,7 @@ const {
   updateNutritionInDatabase,
   fetchNutritionDetailsByPostId,
   checkIfPostIdExists,
+  updateOrInsertUserNutritionPreference,
 } = require('./nutrition');
 
 jest.mock('axios');
@@ -185,6 +186,101 @@ describe('Nutrition', () => {
       const result = await checkIfPostIdExists(mockDbClient, '2');
       expect(result).toBe(false);
       expect(mockDbClient.query).toHaveBeenCalledWith('SELECT EXISTS(SELECT 1 FROM posts WHERE id = $1)', ['2']);
+    });
+  });
+
+  describe('updateOrInsertUserNutritionPreference', () => {
+    it('updates an existing user nutrition preference', async () => {
+      const mockDbClient = {
+        query: jest.fn().mockResolvedValue({
+          rows: [{ post_id: 1, calories: 200, protein: 10 }],
+        }),
+      };
+      const userId = 1;
+      const newValues = {
+        calories: 2000,
+        fat: 70,
+        carbohydrate: 310,
+        fiber: 30,
+        sugar: 90,
+        protein: 50,
+        diet_labels: ['Low-Fat'],
+        health_labels: ['Vegan'],
+      };
+      const existingUserPreference = {
+        rows: [{
+          userId: 1,
+          calories: 1800,
+          fat: 65,
+          carbohydrate: 300,
+          fiber: 25,
+          sugar: 85,
+          protein: 45,
+          number_of_items: 1,
+          diet_labels: ['Low-Fat'],
+          health_labels: ['Vegan'],
+        }],
+      };
+
+      mockDbClient.query.mockResolvedValueOnce(existingUserPreference);
+
+      await updateOrInsertUserNutritionPreference(mockDbClient, userId, newValues);
+
+      expect(mockDbClient.query).toHaveBeenCalledWith(expect.any(String), [userId]);
+      expect(mockDbClient.query)
+        .toHaveBeenCalledWith(expect
+          .stringContaining('UPDATE user_nutrition_preference'), expect.any(Array));
+    });
+
+    it('inserts a new user nutrition preference when not existing', async () => {
+      const userId = 2;
+      const newValues = {
+        calories: 2500,
+        fat: 80,
+        carbohydrate: 320,
+        fiber: 35,
+        sugar: 100,
+        protein: 60,
+        diet_labels: ['Low-Carb'],
+        health_labels: ['Paleo'],
+      };
+      const noExistingUserPreference = { rows: [] };
+      const mockDbClient = {
+        query: jest.fn().mockResolvedValue({ rows: [] }),
+      };
+
+      mockDbClient.query.mockResolvedValueOnce(noExistingUserPreference);
+
+      await updateOrInsertUserNutritionPreference(mockDbClient, userId, newValues);
+
+      expect(mockDbClient.query).toHaveBeenCalledWith(expect.any(String), [userId]);
+      expect(mockDbClient.query)
+        .toHaveBeenCalledWith(expect
+          .stringContaining('INSERT INTO user_nutrition_preference'), expect.any(Array));
+    });
+
+    it('should rollback transaction and rethrow error on failure', async () => {
+      const mockDbClient = {
+        query: jest.fn().mockImplementation((query) => {
+          if (query === 'BEGIN') return Promise.resolve();
+          throw new Error('Database operation failed');
+        }),
+      };
+      const userId = 1;
+      const newValues = {
+        calories: 2000,
+        fat: 70,
+        carbohydrate: 310,
+        fiber: 30,
+        sugar: 90,
+        protein: 50,
+        diet_labels: ['Low-Fat'],
+        health_labels: ['Vegan'],
+      };
+
+      await expect(updateOrInsertUserNutritionPreference(mockDbClient, userId, newValues))
+        .rejects.toThrow('Database operation failed');
+      expect(mockDbClient.query).toHaveBeenCalledWith('ROLLBACK');
     });
   });
 });
