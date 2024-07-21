@@ -3,6 +3,7 @@ const express = require('express');
 const fs = require('fs');
 const aws = require('aws-sdk');
 const postRouter = require('./post');
+const userRouter = require('./user');
 const {
   fetchNutritionDetailsByPostId,
   checkIfPostIdExists,
@@ -19,6 +20,23 @@ jest.mock('multer', () => jest.fn(() => ({
     next();
   }),
 })));
+
+const userPreferences = (number) => ({
+  nutritional_values: {
+    calories: 100 / number,
+    protein: 5 / number,
+    fat: 10 / number,
+    carbohydrate: 20 / number,
+    fiber: 5 / number,
+    sugar: 8 / number,
+  },
+  diet_labels: {
+    'Low Carb': 1 + number,
+  },
+  health_labels: {
+    'Low Sugar': 1 + number,
+  },
+});
 
 jest.mock('./helpers/nutrition', () => ({
   fetchNutritionDetails: jest.fn().mockResolvedValue({
@@ -41,6 +59,9 @@ jest.mock('./helpers/nutrition', () => ({
     protein: 5,
   }),
   checkIfPostIdExists: jest.fn().mockResolvedValue(true),
+  updateOrInsertUserNutritionPreference: jest.fn().mockResolvedValue({
+    success: true,
+  }),
 }));
 
 jest.mock('fs');
@@ -74,6 +95,7 @@ app.use((req, res, next) => {
 });
 
 app.use('/', postRouter);
+app.use('/users', userRouter);
 
 describe('Posts', () => {
   describe('GET /', () => {
@@ -313,6 +335,36 @@ describe('Posts', () => {
   describe('POST /:postId/interested', () => {
     const postId = '1';
     const userId = 'user123';
+    beforeEach(() => {
+      jest.resetModules();
+      jest.mock('./helpers/nutrition', () => {
+        const actualNutritionHelpers = jest.requireActual('./helpers/nutrition');
+        return {
+          ...actualNutritionHelpers,
+          fetchNutritionDetails: jest.fn().mockResolvedValue({
+            calories: 100,
+            protein: 5,
+          }),
+          saveNutritionToDatabase: jest.fn().mockResolvedValue({
+            success: true,
+          }),
+          mapPostToNutritionInfo: jest.fn().mockImplementation((post, nutritionInfo) => ({
+            postId: post.id,
+            ...nutritionInfo,
+          })),
+          updateNutritionInDatabase: jest.fn().mockResolvedValue({
+            success: true,
+          }),
+          fetchNutritionDetailsByPostId: jest.fn().mockResolvedValue({
+            postId: 1,
+            calories: 100,
+            protein: 5,
+          }),
+          checkIfPostIdExists: jest.fn().mockResolvedValue(true),
+        };
+      });
+    });
+
     it('should add interest successfully', async () => {
       mockQuery.mockResolvedValueOnce({ rows: [] });
 
@@ -344,6 +396,87 @@ describe('Posts', () => {
       expect(response.statusCode).toBe(500);
       expect(response.body).toEqual({
         details: 'Failed to update interest',
+        error: 'Failed to update interest',
+      });
+    });
+  });
+
+  describe('POST /:postId/interested and GET /users/:userId/user_preference', () => {
+    const postId1 = '1';
+    const postId2 = '2';
+    const userId = 'user123';
+
+    beforeEach(() => {
+      mockQuery.mockReset();
+    });
+    it('should mark the first post as interested', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      const response = await request(app)
+        .post(`/${postId1}/interested`)
+        .send({ userId });
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual({ message: 'Interest added successfully' });
+    });
+
+    it('should check user preference after marking the first post as interested', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [{
+          number_of_items: 1,
+          ...userPreferences(1),
+        }],
+      });
+      const response = await request(app)
+        .get(`/users/${userId}/user_preference`);
+      expect(response.statusCode).toBe(200);
+      expect(response.body.number_of_items).toEqual(1);
+      expect(response.body.nutritional_values).toEqual({
+        calories: 100,
+        protein: 5,
+        fat: 10,
+        carbohydrate: 20,
+        fiber: 5,
+        sugar: 8,
+      });
+    });
+
+    it('should mark another post as interested', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      const response = await request(app)
+        .post(`/${postId2}/interested`)
+        .send({ userId });
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual({ message: 'Interest added successfully' });
+    });
+
+    it('should check user preference after marking the second post as interested', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rows: [{
+          number_of_items: 2,
+          ...userPreferences(2),
+        }],
+      });
+      const response = await request(app)
+        .get(`/users/${userId}/user_preference`);
+      expect(response.statusCode).toBe(200);
+      expect(response.body.number_of_items).toEqual(2);
+      expect(response.body.nutritional_values).toEqual({
+        calories: 100 / 2,
+        protein: 5 / 2,
+        fat: 10 / 2,
+        carbohydrate: 20 / 2,
+        fiber: 5 / 2,
+        sugar: 8 / 2,
+      });
+    });
+
+    it('should handle database errors gracefully', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Database error'));
+      const response = await request(app)
+        .post(`/${postId1}/interested`)
+        .send({ userId });
+      expect(response.statusCode).toBe(500);
+      expect(response.body).toEqual({
+        details: 'Database error',
         error: 'Failed to update interest',
       });
     });

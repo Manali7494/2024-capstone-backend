@@ -109,4 +109,32 @@ describe('User Routes', () => {
       expect(response.body).toEqual({ message: 'Error' });
     });
   });
+  describe('GET /:userId/user_preference', () => {
+    const userId = '1';
+    const userPreference = {
+      userId: '1',
+      preference: 'Vegan',
+    };
+
+    it('should return user preference', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [userPreference] });
+      const response = await request(app).get(`/${userId}/user_preference`);
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual(userPreference);
+    });
+
+    it('should return 404 if not found', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+      const response = await request(app).get(`/${userId}/user_preference`);
+      expect(response.statusCode).toBe(404);
+      expect(response.body).toEqual({ message: 'User preference not found' });
+    });
+
+    it('should return an error with database operation failure', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Query failed'));
+      const response = await request(app).get(`/${userId}/user_preference`);
+      expect(response.statusCode).toBe(500);
+      expect(response.body).toEqual({ message: 'Error retrieving user preference' });
+    });
+  });
 });
