@@ -7,6 +7,10 @@ const {
   fetchNutritionDetailsByPostId,
   checkIfPostIdExists,
   updateOrInsertUserNutritionPreference,
+  calculateNutritionalScore,
+  calculateLabelScore,
+  calculatePostsScores,
+  calculateWeightedPostsScores,
 } = require('./nutrition');
 
 jest.mock('axios');
@@ -281,6 +285,98 @@ describe('Nutrition', () => {
       await expect(updateOrInsertUserNutritionPreference(mockDbClient, userId, newValues))
         .rejects.toThrow('Database operation failed');
       expect(mockDbClient.query).toHaveBeenCalledWith('ROLLBACK');
+    });
+  });
+  describe('calculateNutritionalScore', () => {
+    it('returns 0 if both post value and preference value are 0', () => {
+      expect(calculateNutritionalScore({ calories: 0 }, { calories: 0 }, 'calories')).toBe(0);
+    });
+
+    it('calculates correct nutritional score', () => {
+      expect(calculateNutritionalScore({ protein: 10 }, { protein: 20 }, 'protein')).toBe(0.6666666666666667);
+    });
+  });
+
+  describe('calculateLabelScore', () => {
+    it('returns 0 if no matching labels are found', () => {
+      const post = { diet_labels: ['Low-Carb'] };
+      const preferences = { diet_labels: { 'Low-Fat': 1 } };
+      expect(calculateLabelScore(post, preferences, 'diet_labels')).toBe(0);
+    });
+
+    it('calculates the correct label score when matches are found', () => {
+      const post = { health_labels: ['Vegan', 'Peanut-Free'] };
+      const preferences = { health_labels: { Vegan: 2, 'Peanut-Free': 1 } };
+      expect(calculateLabelScore(post, preferences, 'health_labels')).toBe(3);
+    });
+  });
+
+  describe('calculatePostsScores', () => {
+    it('calculates scores', () => {
+      const posts = [
+        { calories: 100, fat: 5, diet_labels: ['Low-Carb'] },
+        { calories: 200, fat: 20, diet_labels: ['Low-Fat'] },
+      ];
+      const userPreference = {
+        calories: 150,
+        fat: 10,
+        diet_labels: { 'Low-Carb': 1, 'Low-Fat': 2 },
+      };
+      const scores = calculatePostsScores(posts, userPreference);
+      expect(scores).toEqual([
+        {
+          calories: 0.8,
+          carbohydrate: 0,
+          dietLabels: 1,
+          fat: 0.6666666666666667,
+          fiber: 0,
+          healthLabels: 0,
+          protein: 0,
+          sugar: 0,
+        },
+        {
+          calories: 0.8571428571428572,
+          carbohydrate: 0,
+          dietLabels: 2,
+          fat: 0.6666666666666667,
+          fiber: 0,
+          healthLabels: 0,
+          protein: 0,
+          sugar: 0,
+        },
+      ]);
+    });
+  });
+
+  describe('calculateWeightedPostsScores', () => {
+    it('calculates weighted scores', () => {
+      const posts = [
+        {
+          calories: 100,
+          fat: 5,
+          sugar: 10,
+          carbohydrate: 200,
+          protein: 10,
+          fiber: 5,
+          diet_labels: ['Low-Carb'],
+          health_labels: ['Vegan'],
+        },
+        {
+          calories: 200, fat: 20, sugar: 5, diet_labels: ['Low-Fat'], health_labels: ['Peanut-Free'],
+        },
+      ];
+      const userPreference = {
+        calories: 150,
+        fat: 10,
+        sugar: 7,
+        carbohydrate: 150,
+        protein: 15,
+        fiber: 3,
+        diet_labels: { 'Low-Carb': 1, 'Low-Fat': 2 },
+        health_labels: { Vegan: 2, 'Peanut-Free': 1 },
+      };
+      const weightedScores = calculateWeightedPostsScores(posts, userPreference);
+      expect(weightedScores).toEqual([1.0748669467787115, 0.9749999999999999]);
     });
   });
 });
