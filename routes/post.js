@@ -9,6 +9,7 @@ const {
   updateNutritionInDatabase,
   fetchNutritionDetailsByPostId,
   checkIfPostIdExists,
+  updateOrInsertUserNutritionPreference,
 } = require('./helpers/nutrition');
 
 const bucketName = 'healthy-wealthy-backend-deploy';
@@ -236,6 +237,7 @@ router.post('/:postId', upload.single('healthy-wealthy-image'), async (req, res)
   } catch (error) {
     res.status(500).json({ error: 'Failed to update post', details: error.message });
   }
+  return null;
 });
 
 router.delete('/:postId', async (req, res) => {
@@ -286,8 +288,15 @@ router.post('/:postId/interested', async (req, res) => {
 
     const insertQuery = 'INSERT INTO interested_posts (userId, postId) VALUES ($1, $2)';
     await req.dbClient.query(insertQuery, [userId, postId]);
+    const nutritionDetails = await fetchNutritionDetailsByPostId(req.dbClient, postId);
+    // Add userPreference
+    await updateOrInsertUserNutritionPreference(req.dbClient, userId, {
+      ...nutritionDetails,
+    });
+
     return res.json({ message: 'Interest added successfully' });
   } catch (error) {
+    console.log('error', error);
     return res.status(500).json({ error: 'Failed to update interest', details: error.message });
   }
 });
