@@ -324,7 +324,7 @@ describe('Nutrition', () => {
       };
       const scores = calculatePostsScores(posts, userPreference);
       expect(scores).toEqual([
-        {
+        expect.objectContaining({
           calories: 0.8,
           carbohydrate: 0,
           dietLabels: 1,
@@ -333,8 +333,8 @@ describe('Nutrition', () => {
           healthLabels: 0,
           protein: 0,
           sugar: 0,
-        },
-        {
+        }),
+        expect.objectContaining({
           calories: 0.8571428571428572,
           carbohydrate: 0,
           dietLabels: 2,
@@ -343,7 +343,7 @@ describe('Nutrition', () => {
           healthLabels: 0,
           protein: 0,
           sugar: 0,
-        },
+        }),
       ]);
     });
   });
@@ -376,7 +376,8 @@ describe('Nutrition', () => {
         health_labels: { Vegan: 2, 'Peanut-Free': 1 },
       };
       const weightedScores = calculateWeightedPostsScores(posts, userPreference);
-      expect(weightedScores).toEqual([1.0748669467787115, 0.9749999999999999]);
+      expect(weightedScores.map((i) => i.weightedScore))
+        .toEqual([1.0748669467787115, 0.9749999999999999]);
     });
   });
 });

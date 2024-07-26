@@ -334,8 +334,8 @@ router.get('/suggested/:userId', async (req, res) => {
     const posts = await fetchAllRelevantPosts(req.dbClient, userId);
 
     const rankedPosts = rankPostsByUserPreferences(posts, userPreference);
-
-    return res.json(rankedPosts);
+    const topRankedPosts = [...rankedPosts.slice(0, 3)];
+    return res.json(topRankedPosts);
   } catch (error) {
     console.error('Error fetching suggested routes', error);
     return res.status(500).json({ message: 'Internal server error', details: error.message });
