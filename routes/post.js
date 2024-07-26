@@ -258,6 +258,7 @@ router.post('/:postId', upload.single('healthy-wealthy-image'), async (req, res)
   } catch (error) {
     res.status(500).json({ error: 'Failed to update post', details: error.message });
   }
+  return null;
 });
 
 router.delete('/:postId', async (req, res) => {
@@ -309,7 +310,7 @@ router.post('/:postId/interested', async (req, res) => {
     const insertQuery = 'INSERT INTO interested_posts (userId, postId) VALUES ($1, $2)';
     await req.dbClient.query(insertQuery, [userId, postId]);
     const nutritionDetails = await fetchNutritionDetailsByPostId(req.dbClient, postId);
-    // Add userpreference
+    // Add userPreference
     await updateOrInsertUserNutritionPreference(req.dbClient, userId, {
       ...nutritionDetails,
     });

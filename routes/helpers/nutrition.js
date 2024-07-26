@@ -188,17 +188,6 @@ async function updateOrInsertUserNutritionPreference(dbClient, userId, newValues
   }
 }
 
-async function fetchUserNutritionPreferenceById(dbClient, userId) {
-  try {
-    const queryText = 'SELECT * FROM user_nutrition_preference WHERE userId = $1';
-    const res = await dbClient.query(queryText, [userId]);
-    return res.rows;
-  } catch (error) {
-    console.error('Error fetching user nutrition preference by ID:', error);
-    throw error;
-  }
-}
-
 // Helper functions for ranking posts based on user preferences
 function calculateNutritionalScore(post, preferences, property) {
   const postValue = Number(post[property]) || 0;
@@ -238,8 +227,7 @@ function calculatePostsScores(posts, userPreference) {
 
 const calculateWeightedPostsScores = (posts, userPreference) => {
   const postsWithScores = calculatePostsScores(posts, userPreference);
-
-  postsWithScores.map((scores) => {
+  return postsWithScores.map((scores) => {
     const weightedScore = (
       scores.calories * 0.35
         + scores.dietLabels * 0.20
@@ -265,7 +253,8 @@ module.exports.updateNutritionInDatabase = updateNutritionInDatabase;
 module.exports.fetchNutritionDetailsByPostId = fetchNutritionDetailsByPostId;
 module.exports.checkIfPostIdExists = checkIfPostIdExists;
 module.exports.updateOrInsertUserNutritionPreference = updateOrInsertUserNutritionPreference;
-module.exports.fetchUserNutritionPreferenceById = fetchUserNutritionPreferenceById;
 module.exports.calculateWeightedPostsScores = calculateWeightedPostsScores;
 module.exports.calculateNutritionalScore = calculateNutritionalScore;
 module.exports.rankPostsByUserPreferences = rankPostsByUserPreferences;
+module.exports.calculateLabelScore = calculateLabelScore;
+module.exports.calculatePostsScores = calculatePostsScores;
