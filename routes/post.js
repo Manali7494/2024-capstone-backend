@@ -327,10 +327,14 @@ router.get('/suggested/:userId', async (req, res) => {
   try {
     const userPreferences = await fetchUserNutritionPreferenceById(req.dbClient, userId);
     if (!userPreferences.length) {
-      return res.status(404).json({ message: 'User preferences not found' });
+      return res.json({ code: 'USER_NO_PREFERENCE' });
     }
 
     const userPreference = userPreferences[0];
+
+    if (userPreference.number_of_items && userPreference.calories === '0') {
+      return res.json({ code: 'USER_INVALID_PREFERENCE' });
+    }
     const posts = await fetchAllRelevantPosts(req.dbClient, userId);
 
     const rankedPosts = rankPostsByUserPreferences(posts, userPreference);
