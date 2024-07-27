@@ -137,4 +137,42 @@ describe('User Routes', () => {
       expect(response.body).toEqual({ message: 'Error retrieving user preference' });
     });
   });
+
+  describe('POST /:userId/contactInformation', () => {
+    const userId = '1';
+    const contactInformation = {
+      contactEmail: 'test@example.com',
+      contactNumber: '1234567890',
+    };
+
+    it('should update contact information successfully', async () => {
+      mockQuery.mockResolvedValueOnce({});
+
+      const response = await request(app)
+        .post(`/${userId}/contactInformation`)
+        .send(contactInformation);
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual({ message: 'Contact information updated successfully' });
+      expect(mockQuery).toHaveBeenCalledWith(
+        `
+    UPDATE contact_information
+    SET contact_email = $2, contact_number = $3
+    WHERE userid = $1
+  `,
+        [userId, contactInformation.contactEmail, contactInformation.contactNumber],
+      );
+    });
+
+    it('should return an error if the update fails', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Update failed'));
+
+      const response = await request(app)
+        .post(`/${userId}/contactInformation`)
+        .send(contactInformation);
+
+      expect(response.statusCode).toBe(500);
+      expect(response.body).toEqual({ message: 'Error updating contact information' });
+    });
+  });
 });
