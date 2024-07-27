@@ -97,4 +97,24 @@ router.get('/:userId/profile', async (req, res) => {
     res.status(500).json({ message: 'Error retrieving user profile' });
   }
 });
+
+router.post('/:userId/contactInformation', async (req, res) => {
+  const { userId } = req.params;
+  const { contactEmail, contactNumber } = req.body;
+
+  const contactUpdateQuery = `
+    UPDATE contact_information
+    SET contact_email = $2, contact_number = $3
+    WHERE userid = $1
+  `;
+  const values = [userId, contactEmail, contactNumber];
+
+  try {
+    await req.dbClient.query(contactUpdateQuery, values);
+    res.status(200).json({ message: 'Contact information updated successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating contact information' });
+  }
+});
+
 module.exports = router;
