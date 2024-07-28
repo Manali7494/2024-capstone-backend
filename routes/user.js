@@ -120,8 +120,12 @@ router.put('/:userId/contactInformation', async (req, res) => {
 router.get('/:userId/shop', async (req, res) => {
   const { userId } = req.params;
   const fetchPostsQuery = `
-    SELECT * FROM posts
-    WHERE seller_id = $1
+    SELECT p.*, 
+            COUNT(ip.postid)::int AS interested_count
+    FROM posts p
+    LEFT JOIN interested_posts ip ON p.id = ip.postid AND ip.userid = $1
+    WHERE p.seller_id = $1
+    GROUP BY p.id
   `;
   const values = [userId];
 
