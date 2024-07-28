@@ -98,16 +98,16 @@ router.get('/:userId/profile', async (req, res) => {
   }
 });
 
-router.post('/:userId/contactInformation', async (req, res) => {
+router.put('/:userId/contactInformation', async (req, res) => {
   const { userId } = req.params;
-  const { contactEmail, contactNumber } = req.body;
+  const { email, phone } = req.body;
 
   const contactUpdateQuery = `
     UPDATE contact_information
     SET contact_email = $2, contact_number = $3
     WHERE userid = $1
   `;
-  const values = [userId, contactEmail, contactNumber];
+  const values = [userId, email, phone];
 
   try {
     await req.dbClient.query(contactUpdateQuery, values);
