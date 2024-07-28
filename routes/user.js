@@ -117,4 +117,20 @@ router.put('/:userId/contactInformation', async (req, res) => {
   }
 });
 
+router.get('/:userId/shop', async (req, res) => {
+  const { userId } = req.params;
+  const fetchPostsQuery = `
+    SELECT * FROM posts
+    WHERE seller_id = $1
+  `;
+  const values = [userId];
+
+  try {
+    const result = await req.dbClient.query(fetchPostsQuery, values);
+    res.status(200).json(result.rows);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching posts' });
+  }
+});
+
 module.exports = router;
