@@ -10,6 +10,8 @@ const {
   fetchNutritionDetailsByPostId,
   checkIfPostIdExists,
   updateOrInsertUserNutritionPreference,
+  fetchUserNutritionPreferenceById,
+  rankPostsByUserPreferences,
 } = require('./helpers/nutrition');
 
 const bucketName = 'healthy-wealthy-backend-deploy';
@@ -17,6 +19,25 @@ const bucketName = 'healthy-wealthy-backend-deploy';
 const upload = multer({ dest: 'uploads/' });
 
 const router = express.Router();
+
+async function fetchAllRelevantPosts(dbClient, userId) {
+  try {
+    const queryText = `
+      SELECT p.*, n.* FROM posts p
+      LEFT JOIN nutrition n ON p.id = n.post_id
+      WHERE p.seller_id != $1
+      AND NOT EXISTS (
+        SELECT 1 FROM interested_posts ip
+        WHERE ip.postId = p.id AND ip.userId = $1
+      )
+    `;
+    const res = await dbClient.query(queryText, [userId]);
+    return res.rows;
+  } catch (error) {
+    console.error('Error fetching posts:', error);
+    throw error;
+  }
+}
 
 // Routes
 
@@ -298,6 +319,30 @@ router.post('/:postId/interested', async (req, res) => {
   } catch (error) {
     console.log('error', error);
     return res.status(500).json({ error: 'Failed to update interest', details: error.message });
+  }
+});
+
+router.get('/suggested/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const userPreferences = await fetchUserNutritionPreferenceById(req.dbClient, userId);
+    if (!userPreferences.length) {
+      return res.json({ code: 'USER_NO_PREFERENCE' });
+    }
+
+    const userPreference = userPreferences[0];
+
+    if (userPreference.number_of_items && userPreference.calories === '0') {
+      return res.json({ code: 'USER_INVALID_PREFERENCE' });
+    }
+    const posts = await fetchAllRelevantPosts(req.dbClient, userId);
+
+    const rankedPosts = rankPostsByUserPreferences(posts, userPreference);
+    const topRankedPosts = [...rankedPosts.slice(0, 3)];
+    return res.json(topRankedPosts);
+  } catch (error) {
+    console.error('Error fetching suggested routes', error);
+    return res.status(500).json({ message: 'Internal server error', details: error.message });
   }
 });
 

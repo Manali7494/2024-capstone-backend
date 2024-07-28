@@ -127,6 +127,12 @@ function updateLabelCounts(existingLabels, newLabels) {
   return labels;
 }
 
+async function fetchUserNutritionPreferenceById(dbClient, userId) {
+  const query = 'SELECT * FROM user_nutrition_preference WHERE userId = $1';
+  const { rows } = await dbClient.query(query, [userId]);
+  return rows;
+}
+
 async function updateOrInsertUserNutritionPreference(dbClient, userId, newValues) {
   try {
     const {
@@ -137,9 +143,8 @@ async function updateOrInsertUserNutritionPreference(dbClient, userId, newValues
     await dbClient.query('BEGIN');
 
     // Check if the user already exists
-    const selectQuery = 'SELECT * FROM user_nutrition_preference WHERE userId = $1';
-    const { rows } = await dbClient.query(selectQuery, [userId]);
-    const existing = rows[0];
+    const existingRows = await fetchUserNutritionPreferenceById(dbClient, userId);
+    const existing = existingRows[0];
 
     // Update an existing user preference
     if (existing) {
@@ -211,6 +216,7 @@ function calculateLabelScore(post, preferences, labelType) {
 function calculatePostsScores(posts, userPreference) {
   return posts.map((post) => {
     const scores = {
+      post,
       calories: calculateNutritionalScore(post, userPreference, 'calories'),
       fat: calculateNutritionalScore(post, userPreference, 'fat'),
       sugar: calculateNutritionalScore(post, userPreference, 'sugar'),
@@ -238,9 +244,18 @@ const calculateWeightedPostsScores = (posts, userPreference) => {
         + scores.protein * 0.05
         + scores.fiber * 0.05
     );
-    return Number.isNaN(weightedScore) ? 0 : weightedScore;
+
+    return {
+      post: scores.post,
+      weightedScore: Number.isNaN(weightedScore) ? 0 : weightedScore,
+    };
   });
 };
+
+function rankPostsByUserPreferences(posts, userPreference) {
+  return calculateWeightedPostsScores(posts, userPreference).sort((a, b) => b.weightedScore
+  - a.weightedScore);
+}
 
 module.exports.fetchNutritionDetails = fetchNutritionDetails;
 module.exports.saveNutritionToDatabase = saveNutritionToDatabase;
@@ -251,5 +266,7 @@ module.exports.checkIfPostIdExists = checkIfPostIdExists;
 module.exports.updateOrInsertUserNutritionPreference = updateOrInsertUserNutritionPreference;
 module.exports.calculateWeightedPostsScores = calculateWeightedPostsScores;
 module.exports.calculateNutritionalScore = calculateNutritionalScore;
+module.exports.rankPostsByUserPreferences = rankPostsByUserPreferences;
 module.exports.calculateLabelScore = calculateLabelScore;
 module.exports.calculatePostsScores = calculatePostsScores;
+module.exports.fetchUserNutritionPreferenceById = fetchUserNutritionPreferenceById;
