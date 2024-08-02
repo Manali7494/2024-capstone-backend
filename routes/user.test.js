@@ -138,6 +138,43 @@ describe('User Routes', () => {
     });
   });
 
+  describe('GET /:userId/profile', () => {
+    const userId = '1';
+    const userProfile = {
+      name: 'Test User',
+      id: '1',
+      username: 'testUser',
+      email: 'test@gmail.com',
+      phone: '1234567890',
+    };
+
+    it('should return user profile if user is found', async () => {
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ userid: userId, name: 'Test User', username: 'testUser' }] })
+        .mockResolvedValueOnce({ rows: [{ contact_email: 'test@gmail.com', contact_number: '1234567890' }] });
+
+      const response = await request(app).get(`/${userId}/profile`);
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual(userProfile);
+    });
+
+    it('should return 404 if user is not found', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      const response = await request(app).get(`/${userId}/profile`);
+      expect(response.statusCode).toBe(404);
+      expect(response.body).toEqual({ message: 'User not found' });
+    });
+
+    it('should return 500 if there is a database error', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Query failed'));
+
+      const response = await request(app).get(`/${userId}/profile`);
+      expect(response.statusCode).toBe(500);
+      expect(response.body).toEqual({ message: 'Error retrieving user profile' });
+    });
+  });
+
   describe('POST /:userId/contactInformation', () => {
     const userId = '1';
     const contactInformation = {
