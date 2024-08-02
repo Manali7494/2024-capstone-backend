@@ -71,4 +71,30 @@ router.get('/:userId/user_preference', async (req, res) => {
   }
 });
 
+router.get('/:userId/profile', async (req, res) => {
+  const { userId } = req.params;
+  const userQuery = 'SELECT * FROM users WHERE userid = $1';
+  const contactQuery = 'SELECT * FROM contact_information WHERE userid = $1';
+  const values = [userId];
+
+  try {
+    const userResult = await req.dbClient.query(userQuery, values);
+    const contactResult = await req.dbClient.query(contactQuery, values);
+    if (userResult.rows.length > 0) {
+      const userProfile = userResult.rows[0];
+      const contactInfo = contactResult.rows.length > 0 ? contactResult.rows[0] : {};
+      res.status(200).json({
+        name: userProfile.name,
+        id: userProfile.userid,
+        username: userProfile.username,
+        email: contactInfo.contact_email,
+        phone: contactInfo.contact_number,
+      });
+    } else {
+      res.status(404).json({ message: 'User not found' });
+    }
+  } catch (err) {
+    res.status(500).json({ message: 'Error retrieving user profile' });
+  }
+});
 module.exports = router;
