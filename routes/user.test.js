@@ -233,5 +233,23 @@ describe('User Routes', () => {
       expect(response.statusCode).toBe(500);
       expect(response.body).toEqual({ message: 'Error fetching posts' });
     });
+
+    it('should fetch posts with interested_posts count', async () => {
+      const userInterestedPosts = [
+        {
+          id: 1, title: 'Post 1', content: 'Content 1', userId: '1', interested_count: 2,
+        },
+        {
+          id: 2, title: 'Post 2', content: 'Content 2', userId: '1', interested_count: 0,
+        },
+      ];
+      mockQuery.mockResolvedValueOnce({ rows: userInterestedPosts });
+
+      const response = await request(app).get(`/${userId}/shop`);
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual(userInterestedPosts);
+      expect(response.body[0].interested_count).toBe(2);
+      expect(response.body[1].interested_count).toBe(0);
+    });
   });
 });
