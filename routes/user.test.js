@@ -206,4 +206,32 @@ describe('User Routes', () => {
       expect(response.body).toEqual({ message: 'Error updating contact information' });
     });
   });
+
+  describe('GET /:userId/shop', () => {
+    const userId = '1';
+    const userPosts = [
+      {
+        id: 1, title: 'Post 1', content: 'Content 1', userId: '1',
+      },
+      {
+        id: 2, title: 'Post 2', content: 'Content 2', userId: '1',
+      },
+    ];
+
+    it('should fetch posts successfully', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: userPosts });
+
+      const response = await request(app).get(`/${userId}/shop`);
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual(userPosts);
+    });
+
+    it('should return 500 if there is a database error', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Query failed'));
+
+      const response = await request(app).get(`/${userId}/shop`);
+      expect(response.statusCode).toBe(500);
+      expect(response.body).toEqual({ message: 'Error fetching posts' });
+    });
+  });
 });
