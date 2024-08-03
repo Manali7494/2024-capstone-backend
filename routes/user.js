@@ -124,7 +124,7 @@ router.get('/:userId/shop', async (req, res) => {
     SELECT p.*, 
             COUNT(ip.postid)::int AS interested_count
     FROM posts p
-    LEFT JOIN interested_posts ip ON p.id = ip.postid AND ip.userid = $1
+    LEFT JOIN interested_posts ip ON p.id = ip.postid
     WHERE p.seller_id = $1
     GROUP BY p.id
   `;
