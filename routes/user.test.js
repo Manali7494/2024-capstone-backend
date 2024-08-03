@@ -174,4 +174,36 @@ describe('User Routes', () => {
       expect(response.body).toEqual({ message: 'Error retrieving user profile' });
     });
   });
+
+  describe('POST /:userId/contactInformation', () => {
+    const userId = '1';
+    const contactInformation = {
+      contactEmail: 'test@example.com',
+      contactNumber: '1234567890',
+    };
+
+    it('should update contact information successfully', async () => {
+      mockQuery.mockResolvedValueOnce({
+        userId: 'user:123',
+      });
+
+      const response = await request(app)
+        .put(`/${userId}/contactInformation`)
+        .send(contactInformation);
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual({ message: 'Contact information updated successfully' });
+    });
+
+    it('should return an error if the update fails', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Update failed'));
+
+      const response = await request(app)
+        .put(`/${userId}/contactInformation`)
+        .send(contactInformation);
+
+      expect(response.statusCode).toBe(500);
+      expect(response.body).toEqual({ message: 'Error updating contact information' });
+    });
+  });
 });
