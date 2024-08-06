@@ -20,6 +20,22 @@ const upload = multer({ dest: 'uploads/' });
 
 const router = express.Router();
 
+const getSignedUrl = (s3, imageUrl) => new Promise((resolve, reject) => {
+  s3.getSignedUrl('getObject', {
+    Bucket: bucketName,
+    Key: imageUrl.split('/').pop(),
+    Expires: 60 * 5,
+  }, (err, url) => {
+    if (err) {
+      reject(err);
+    } else {
+      resolve(url);
+    }
+  });
+});
+
+const formatDate = (date) => (date ? new Date(date).toISOString().split('T')[0] : null);
+
 async function fetchAllRelevantPosts(dbClient, userId) {
   try {
     const queryText = `
@@ -339,7 +355,26 @@ router.get('/suggested/:userId', async (req, res) => {
 
     const rankedPosts = rankPostsByUserPreferences(posts, userPreference);
     const topRankedPosts = [...rankedPosts.slice(0, 3)];
-    return res.json(topRankedPosts);
+    const s3 = new req.aws.S3();
+    const result = await Promise.all(topRankedPosts.map(async ({ post }) => {
+      try {
+        const imageUrl = post.image_url ? await getSignedUrl(s3, post.image_url) : null;
+        return {
+          ...post,
+          imageUrl,
+          purchaseDate: formatDate(post.purchase_date),
+          expiryDate: formatDate(post.expiry_date),
+        };
+      } catch (err) {
+        console.error('Error generating signed URL', err);
+        return {
+          ...post,
+          purchaseDate: formatDate(post.purchase_date),
+          expiryDate: formatDate(post.expiry_date),
+        };
+      }
+    }));
+    return res.json(result);
   } catch (error) {
     console.error('Error fetching suggested routes', error);
     return res.status(500).json({ message: 'Internal server error', details: error.message });
