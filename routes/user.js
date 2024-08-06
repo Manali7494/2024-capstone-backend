@@ -1,6 +1,7 @@
 const express = require('express');
 
 const router = express.Router();
+const bucketName = 'healthy-wealthy-backend-deploy';
 
 router.post('/', async (req, res) => {
   const {
@@ -120,14 +121,52 @@ router.put('/:userId/contactInformation', async (req, res) => {
 router.get('/:userId/shop', async (req, res) => {
   const { userId } = req.params;
   const fetchPostsQuery = `
-    SELECT * FROM posts
-    WHERE seller_id = $1
+    SELECT p.*, 
+            COUNT(ip.postid)::int AS interested_count
+    FROM posts p
+    LEFT JOIN interested_posts ip ON p.id = ip.postid
+    WHERE p.seller_id = $1
+    GROUP BY p.id
   `;
   const values = [userId];
 
   try {
     const result = await req.dbClient.query(fetchPostsQuery, values);
-    res.status(200).json(result.rows);
+    const posts = result.rows;
+
+    const postsWithImages = await Promise.all(posts.map(async (post) => {
+      if (post.image_url) {
+        const s3 = new req.aws.S3();
+        const imageUrl = await new Promise((resolve, reject) => {
+          s3.getSignedUrl('getObject', {
+            Bucket: bucketName,
+            Key: post.image_url.split('/').pop(),
+            Expires: 60 * 5,
+          }, (err, url) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(url);
+            }
+          });
+        });
+
+        return {
+          ...post,
+          imageUrl,
+          purchaseDate: post.purchase_date ? new Date(post.purchase_date).toISOString().split('T')[0] : null,
+          expiryDate: post.expiry_date ? new Date(post.expiry_date).toISOString().split('T')[0] : null,
+        };
+      }
+
+      return {
+        ...post,
+        purchaseDate: post.purchase_date ? new Date(post.purchase_date).toISOString().split('T')[0] : null,
+        expiryDate: post.expiry_date ? new Date(post.expiry_date).toISOString().split('T')[0] : null,
+      };
+    }));
+
+    res.status(200).json(postsWithImages);
   } catch (err) {
     res.status(500).json({ message: 'Error fetching posts' });
   }
